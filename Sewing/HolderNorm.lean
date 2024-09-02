@@ -59,22 +59,17 @@ lemma eHolderNorm_eq_zero_iff {r : ℝ≥0} {f : X → Y} :
 lemma MemHolder.holderWith {r : ℝ≥0} {f : X → Y} (hf : MemHolder r f) :
     HolderWith (NNHolderNorm r f) r f := by
   intros x₁ x₂
+  by_cases hx : x₁ = x₂
+  . simp only [hx, edist_self, zero_le]
   rw [NNHolderNorm, eHolderNorm, coe_toNNReal]
   swap; exact hf
-  sorry
-  -- . rw [← ENNReal.iInf_mul_right]
-  --   . refine le_iInf <| fun C => ?_
-  --     -- by_cases htop : edist x₁ x₂ ^ (r : ℝ) = ∞
-  --     -- . simp [htop]
-  --     rw [← ENNReal.iInf_mul_right']
-  --     . exact le_iInf <| fun hC => hC x₁ x₂
-  --     . sorry
-  --     . sorry
-  --     -- . intros h₁ h₂
-  --       -- rw [ENNReal.coe_eq_zero, exists_prop]
-  --       -- rw [← ENNReal.bot_eq_zero, iInf_eq_bot] at h₂
-  --   . sorry
+  have h₁ : edist x₁ x₂ ^ (r : ℝ) ≠ 0 :=
+    (Ne.symm <| ne_of_lt <| ENNReal.rpow_pos (edist_pos.2 hx) (edist_lt_top x₁ x₂).ne)
+  have h₂ : edist x₁ x₂ ^ (r : ℝ) ≠ ∞ := by
+    simp [(edist_lt_top x₁ x₂).ne]
+  rw [← ENNReal.div_le_iff h₁ h₂]
+  refine le_iInf₂ fun C hC => ?_
+  rw [ENNReal.div_le_iff h₁ h₂]
+  exact hC x₁ x₂
 
-
-
-end EMetricSpace
+end MetricSpace
