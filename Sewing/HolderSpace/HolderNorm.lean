@@ -22,10 +22,16 @@ def MemHolder (r : ℝ≥0) (f : X → Y) : Prop := eHolderNorm r f ≠ ∞
 lemma not_memHolder {r : ℝ≥0} {f : X → Y} : ¬ MemHolder r f ↔ eHolderNorm r f = ∞ := by
   rw [MemHolder, not_not]
 
+lemma MemHolder.ne_top {r : ℝ≥0} {f : X → Y} (hf : MemHolder r f) : eHolderNorm r f ≠ ∞ :=
+  hf
+
+lemma MemHolder.lt_top {r : ℝ≥0} {f : X → Y} (hf : MemHolder r f) : eHolderNorm r f < ∞ :=
+  hf.ne_top.lt_top
+
 variable (X) in
 lemma eHolderNorm_const (r : ℝ≥0) (c : Y) : eHolderNorm r (Function.const X c) = 0 := by
   rw [eHolderNorm, ← ENNReal.bot_eq_zero, iInf₂_eq_bot]
-  exact fun C' hC' => ⟨0, .const, hC'⟩
+  exact fun C' hC' => ⟨0, .const X 0, hC'⟩
 
 variable (X) in
 lemma eHolderNorm_zero [Zero Y] (r : ℝ≥0) : eHolderNorm r (0 : X → Y) = 0 :=
@@ -115,6 +121,14 @@ section SeminormedAddCommGroup
 
 variable [MetricSpace X] [NormedAddCommGroup Y]
 variable {C r : ℝ≥0} {f g : X → Y}
+
+variable (X) in
+lemma memHolder_const {c : Y} : MemHolder r (Function.const X c) :=
+  (HolderWith.const X 0).memHolder
+
+variable (X) in
+lemma memHolder_zero : MemHolder r (0 : X → Y) :=
+  memHolder_const X
 
 lemma MemHolder.add (hf : MemHolder r f) (hg : MemHolder r g) : MemHolder r (f + g) := by
   refine (hf.holderWith.add hg.holderWith).memHolder

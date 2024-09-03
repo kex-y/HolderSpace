@@ -15,12 +15,14 @@ section PseudoEMetricSpace
 
 variable [PseudoEMetricSpace Y]
 
-lemma HolderWith.const {C r : ℝ≥0} {c : Y} :
+variable (X) in
+lemma HolderWith.const (C : ℝ≥0) {r : ℝ≥0} {c : Y} :
     HolderWith C r (Function.const X c) := fun x₁ x₂ => by
   simp only [Function.const_apply, edist_self, zero_le]
 
-lemma HolderWith.zero [Zero Y] (C r : ℝ≥0) : HolderWith C r (0 : X → Y) :=
-  .const
+variable (X) in
+lemma HolderWith.zero [Zero Y] (C : ℝ≥0) {r : ℝ≥0} : HolderWith C r (0 : X → Y) :=
+  .const X C
 
 lemma HolderWith.isEmpty {C r : ℝ≥0} {f : X → Y} (hX : IsEmpty X) :
     HolderWith C r f := fun x₁ => False.elim <| hX.elim x₁
