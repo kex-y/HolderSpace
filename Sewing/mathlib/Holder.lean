@@ -19,7 +19,7 @@ lemma HolderWith.const {C r : ℝ≥0} {c : Y} :
     HolderWith C r (Function.const X c) := fun x₁ x₂ => by
   simp only [Function.const_apply, edist_self, zero_le]
 
-lemma HolderWith.zero [Zero Y] {C r : ℝ≥0} : HolderWith C r (0 : X → Y) :=
+lemma HolderWith.zero [Zero Y] (C r : ℝ≥0) : HolderWith C r (0 : X → Y) :=
   .const
 
 lemma HolderWith.isEmpty {C r : ℝ≥0} {f : X → Y} (hX : IsEmpty X) :
@@ -50,10 +50,10 @@ lemma HolderWith.add [SeminormedAddCommGroup Y]
 
 lemma HolderWith.smul {α} [NormedDivisionRing α] [SeminormedAddCommGroup Y]
     [Module α Y] [BoundedSMul α Y] {C r : ℝ≥0} {f : X → Y} (c : α)
-    (hf : HolderWith C r f) : HolderWith (C * ‖c‖₊) r (c • f) := fun x₁ x₂ => by
+    (hf : HolderWith C r f) : HolderWith (‖c‖₊ * C) r (c • f) := fun x₁ x₂ => by
   specialize hf x₁ x₂
-  rw [Pi.smul_apply, coe_mul, Pi.smul_apply, edist_smul₀, mul_comm (C : ℝ≥0∞),
-    ENNReal.smul_def, smul_eq_mul, mul_assoc]
+  rw [Pi.smul_apply, coe_mul, Pi.smul_apply, edist_smul₀, ENNReal.smul_def,
+    smul_eq_mul, mul_assoc]
   gcongr
 
 end SeminormedAddCommGroup

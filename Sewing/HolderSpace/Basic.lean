@@ -37,7 +37,7 @@ instance [SeminormedAddCommGroup Y] :
   add f g := ⟨f + g, _, f.HolderWith.choose_spec.add g.HolderWith.choose_spec⟩
 
 instance [PseudoEMetricSpace Y] [Zero Y] : Zero C^r(X; Y) where
-  zero := ⟨0, _, HolderWith.zero 0 _⟩
+  zero := ⟨0, _, .zero 0 _⟩
 
 instance {α} [NormedDivisionRing α] [SeminormedAddCommGroup Y]
     [Module α Y] [BoundedSMul α Y] : SMul α C^r(X; Y) where
