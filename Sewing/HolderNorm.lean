@@ -1,5 +1,4 @@
 import Mathlib.Topology.MetricSpace.Holder
-import Sewing.Mathlib.CompleteLattice
 import Sewing.Mathlib.Holder
 
 variable {X Y Z : Type*}
