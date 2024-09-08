@@ -9,23 +9,23 @@ open NNReal ENNReal Topology
 
 section PseudoEMetricSpace
 
-variable [PseudoEMetricSpace X] [PseudoEMetricSpace Y]
+variable [PseudoEMetricSpace X] [PseudoEMetricSpace Y] {r : ℝ≥0} {f : X → Y}
 
 noncomputable
 def eHolderNorm (r : ℝ≥0) (f : X → Y) : ℝ≥0∞ := ⨅ (C) (_ : HolderWith C r f), C
 
 noncomputable
-def HolderNorm (r : ℝ≥0) (f : X → Y) : ℝ≥0 := (eHolderNorm r f).toNNReal
+def nnHolderNorm (r : ℝ≥0) (f : X → Y) : ℝ≥0 := (eHolderNorm r f).toNNReal
 
 def MemHolder (r : ℝ≥0) (f : X → Y) : Prop := eHolderNorm r f ≠ ∞
 
-lemma not_memHolder {r : ℝ≥0} {f : X → Y} : ¬ MemHolder r f ↔ eHolderNorm r f = ∞ := by
+lemma not_memHolder : ¬ MemHolder r f ↔ eHolderNorm r f = ∞ := by
   rw [MemHolder, not_not]
 
-lemma MemHolder.ne_top {r : ℝ≥0} {f : X → Y} (hf : MemHolder r f) : eHolderNorm r f ≠ ∞ :=
+lemma MemHolder.ne_top (hf : MemHolder r f) : eHolderNorm r f ≠ ∞ :=
   hf
 
-lemma MemHolder.lt_top {r : ℝ≥0} {f : X → Y} (hf : MemHolder r f) : eHolderNorm r f < ∞ :=
+lemma MemHolder.lt_top (hf : MemHolder r f) : eHolderNorm r f < ∞ :=
   hf.ne_top.lt_top
 
 variable (X) in
@@ -39,10 +39,26 @@ lemma eHolderNorm_zero [Zero Y] (r : ℝ≥0) : eHolderNorm r (0 : X → Y) = 0 
 
 attribute [simp] eHolderNorm_const eHolderNorm_zero
 
-lemma eHolderNorm_of_isEmpty {r : ℝ≥0} {f : X → Y} (hX : IsEmpty X) :
+lemma eHolderNorm_of_isEmpty (hX : IsEmpty X) :
     eHolderNorm r f = 0 := by
   rw [eHolderNorm, ← ENNReal.bot_eq_zero, iInf₂_eq_bot]
   exact fun ε hε => ⟨0, .isEmpty hX, hε⟩
+
+lemma HolderWith.eHolderNorm_le {C : ℝ≥0} (hf : HolderWith C r f) :
+    eHolderNorm r f ≤ C :=
+  iInf₂_le C hf
+
+lemma HolderWith.memHolder {C : ℝ≥0} (hf : HolderWith C r f) :
+    MemHolder r f :=
+  ne_of_lt <| lt_of_le_of_lt hf.eHolderNorm_le <| coe_lt_top (r := C)
+
+variable (X) in
+lemma memHolder_const {c : Y} : MemHolder r (Function.const X c) :=
+  (HolderWith.const X 0).memHolder
+
+variable (X) in
+lemma memHolder_zero [Zero Y] : MemHolder r (0 : X → Y) :=
+  memHolder_const X
 
 end PseudoEMetricSpace
 
@@ -71,11 +87,11 @@ lemma eHolderNorm_eq_zero_iff {r : ℝ≥0} {f : X → Y} :
       simp [funext_iff, h _ hX.some]
 
 lemma MemHolder.holderWith {r : ℝ≥0} {f : X → Y} (hf : MemHolder r f) :
-    HolderWith (HolderNorm r f) r f := by
+    HolderWith (nnHolderNorm r f) r f := by
   intros x₁ x₂
   by_cases hx : x₁ = x₂
   . simp only [hx, edist_self, zero_le]
-  rw [HolderNorm, eHolderNorm, coe_toNNReal]
+  rw [nnHolderNorm, eHolderNorm, coe_toNNReal]
   swap; exact hf
   have h₁ : edist x₁ x₂ ^ (r : ℝ) ≠ 0 :=
     (Ne.symm <| ne_of_lt <| ENNReal.rpow_pos (edist_pos.2 hx) (edist_lt_top x₁ x₂).ne)
@@ -88,32 +104,28 @@ lemma MemHolder.holderWith {r : ℝ≥0} {f : X → Y} (hf : MemHolder r f) :
 
 lemma coe_HolderNorm_le_eHolderNorm
     {r : ℝ≥0} {f : X → Y} :
-    (HolderNorm r f : ℝ≥0∞) ≤ eHolderNorm r f :=
+    (nnHolderNorm r f : ℝ≥0∞) ≤ eHolderNorm r f :=
   coe_toNNReal_le_self
-
-lemma HolderWith.eHolderNorm_le {C r : ℝ≥0} {f : X → Y} (hf : HolderWith C r f) :
-    eHolderNorm r f ≤ C :=
-  iInf₂_le C hf
 
 lemma HolderWith.coe_HolderNorm_eq_eHolderNorm
     {C r : ℝ≥0} {f : X → Y} (hf : HolderWith C r f) :
-    (HolderNorm r f : ℝ≥0∞) = eHolderNorm r f := by
-  rw [HolderNorm, coe_toNNReal]
+    (nnHolderNorm r f : ℝ≥0∞) = eHolderNorm r f := by
+  rw [nnHolderNorm, coe_toNNReal]
   exact ne_of_lt <| lt_of_le_of_lt hf.eHolderNorm_le <| coe_lt_top (r := C)
 
 lemma MemHolder.coe_HolderNorm_eq_eHolderNorm
     {r : ℝ≥0} {f : X → Y} (hf : MemHolder r f) :
-    (HolderNorm r f : ℝ≥0∞) = eHolderNorm r f :=
+    (nnHolderNorm r f : ℝ≥0∞) = eHolderNorm r f :=
   hf.holderWith.coe_HolderNorm_eq_eHolderNorm
 
 lemma HolderWith.holderNorm_le {C r : ℝ≥0} {f : X → Y} (hf : HolderWith C r f) :
-    HolderNorm r f ≤ C := by
+    nnHolderNorm r f ≤ C := by
   rw [← ENNReal.coe_le_coe, hf.coe_HolderNorm_eq_eHolderNorm]
   exact hf.eHolderNorm_le
 
-lemma HolderWith.memHolder {C r : ℝ≥0} {f : X → Y} (hf : HolderWith C r f) :
-    MemHolder r f :=
-  ne_of_lt <| lt_of_le_of_lt hf.eHolderNorm_le <| coe_lt_top (r := C)
+lemma MemHolder.comp {r : ℝ≥0} {Z : Type*} [MetricSpace Z] {f : Z → X} {g : X → Y}
+    (hf : MemHolder r f) (hg : MemHolder r g) : MemHolder (r * r) (g ∘ f) :=
+  (hg.holderWith.comp hf.holderWith).memHolder
 
 end MetricSpace
 
@@ -121,14 +133,6 @@ section SeminormedAddCommGroup
 
 variable [MetricSpace X] [NormedAddCommGroup Y]
 variable {C r : ℝ≥0} {f g : X → Y}
-
-variable (X) in
-lemma memHolder_const {c : Y} : MemHolder r (Function.const X c) :=
-  (HolderWith.const X 0).memHolder
-
-variable (X) in
-lemma memHolder_zero : MemHolder r (0 : X → Y) :=
-  memHolder_const X
 
 lemma MemHolder.add (hf : MemHolder r f) (hg : MemHolder r g) : MemHolder r (f + g) := by
   refine (hf.holderWith.add hg.holderWith).memHolder
@@ -170,6 +174,6 @@ lemma eHolderNorm_smul {α} [NormedDivisionRing α] [Module α Y] [BoundedSMul �
     intro h
     have := h.smul c⁻¹
     rw [inv_smul_smul₀ hc] at this
-    refine this hf
+    exact this hf
 
 end SeminormedAddCommGroup
