@@ -133,6 +133,10 @@ lemma memHolder_zero : MemHolder r (0 : X → Y) :=
 lemma MemHolder.add (hf : MemHolder r f) (hg : MemHolder r g) : MemHolder r (f + g) := by
   refine (hf.holderWith.add hg.holderWith).memHolder
 
+lemma MemHolder.smul {α} [NormedDivisionRing α] [Module α Y] [BoundedSMul α Y]
+    (c : α) (hf : MemHolder r f) : MemHolder r (c • f) :=
+  (hf.holderWith.smul c).memHolder
+
 variable (r f g) in
 lemma eHolderNorm_add :
     eHolderNorm r (f + g) ≤ eHolderNorm r f + eHolderNorm r g := by
@@ -145,19 +149,27 @@ lemma eHolderNorm_add :
     obtain (h | h) := hfg
     all_goals simp [h]
 
-lemma MemHolder.smul {α} [NormedDivisionRing α] [Module α Y] [BoundedSMul α Y]
-    (c : α) (hf : MemHolder r f) : MemHolder r (c • f) :=
-  (hf.holderWith.smul c).memHolder
-
 lemma eHolderNorm_smul {α} [NormedDivisionRing α] [Module α Y] [BoundedSMul α Y] (c : α) :
-    eHolderNorm r (c • f) ≤ ‖c‖₊ * eHolderNorm r f := by
+    eHolderNorm r (c • f) = ‖c‖₊ * eHolderNorm r f := by
+  by_cases hc : ‖c‖₊ = 0
+  . rw [nnnorm_eq_zero] at hc
+    simp [hc]
   by_cases hf : MemHolder r f
-  . refine (hf.holderWith.smul c).eHolderNorm_le.trans ?_
-    rw [coe_mul, hf.coe_HolderNorm_eq_eHolderNorm]
-  . by_cases hc : ‖c‖₊ = 0
-    . rw [nnnorm_eq_zero] at hc
-      simp [hc]
-    . rw [not_memHolder] at hf
-      simp [hf, mul_top <| coe_ne_zero.2 hc]
+  . refine le_antisymm ((hf.holderWith.smul c).eHolderNorm_le.trans ?_) <| mul_le_of_le_div' ?_
+    . rw [coe_mul, hf.coe_HolderNorm_eq_eHolderNorm]
+    . rw [← (hf.holderWith.smul c).coe_HolderNorm_eq_eHolderNorm, ← coe_div hc]
+      refine HolderWith.eHolderNorm_le fun x₁ x₂ => ?_
+      rw [coe_div hc, ← ENNReal.mul_div_right_comm,
+        ENNReal.le_div_iff_mul_le (Or.inl <| coe_ne_zero.2 hc) <| Or.inl coe_ne_top,
+        mul_comm, ← smul_eq_mul, ← ENNReal.smul_def, ← edist_smul₀, ← Pi.smul_apply,
+        ← Pi.smul_apply]
+      exact (hf.smul c).holderWith x₁ x₂
+  . rw [not_memHolder] at hf
+    rw [hf, mul_top <| coe_ne_zero.2 hc, ← not_memHolder]
+    rw [nnnorm_eq_zero] at hc
+    intro h
+    have := h.smul c⁻¹
+    rw [inv_smul_smul₀ hc] at this
+    refine this hf
 
 end SeminormedAddCommGroup
