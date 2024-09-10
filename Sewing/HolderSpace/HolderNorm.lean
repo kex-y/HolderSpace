@@ -1,5 +1,15 @@
+/-
+Copyright (c) 2024 Kexing Ying. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Kexing Ying
+-/
 import Mathlib.Topology.MetricSpace.Holder
 import Sewing.Mathlib.Holder
+
+/-!
+# Holder norm
+
+-/
 
 variable {X Y Z : Type*}
 
@@ -11,22 +21,41 @@ section PseudoEMetricSpace
 
 variable [PseudoEMetricSpace X] [PseudoEMetricSpace Y] {r : ℝ≥0} {f : X → Y}
 
+/-- The `r`-Holder (semi)norm in `ℝ≥0∞` of a function `f` is the least non-negative real
+number `C` for which `f` is `r`-Holder continuous with constant `C`. This is `∞` if no such
+non-negative real exists. -/
 noncomputable
 def eHolderNorm (r : ℝ≥0) (f : X → Y) : ℝ≥0∞ := ⨅ (C) (_ : HolderWith C r f), C
 
+/-- The `r`-Holder (semi)norm in `ℝ≥0`.  -/
 noncomputable
 def nnHolderNorm (r : ℝ≥0) (f : X → Y) : ℝ≥0 := (eHolderNorm r f).toNNReal
 
-def MemHolder (r : ℝ≥0) (f : X → Y) : Prop := eHolderNorm r f ≠ ∞
+def MemHolder (r : ℝ≥0) (f : X → Y) : Prop := ∃ C, HolderWith C r f
+
+lemma HolderWith.memHolder {C : ℝ≥0} (hf : HolderWith C r f) : MemHolder r f :=
+  ⟨C, hf⟩
+
+lemma MemHolder.eHolderNorm_lt_top (hf : MemHolder r f) : eHolderNorm r f < ∞ :=
+  let ⟨C, hC⟩ := hf; iInf_lt_top.2 ⟨C, iInf_lt_top.2 ⟨hC, coe_lt_top⟩⟩
+
+lemma memHolder_iff : MemHolder r f ↔ eHolderNorm r f < ∞ := by
+  refine ⟨MemHolder.eHolderNorm_lt_top, fun h => ?_⟩
+  simp_rw [eHolderNorm, iInf_lt_top] at h
+  obtain ⟨C, hC, -⟩ := h
+  exact ⟨C, hC⟩
+
+lemma memHolder_iff' : MemHolder r f ↔ eHolderNorm r f ≠ ∞ := by
+  rw [memHolder_iff, lt_top_iff_ne_top]
 
 lemma not_memHolder : ¬ MemHolder r f ↔ eHolderNorm r f = ∞ := by
-  rw [MemHolder, not_not]
-
-lemma MemHolder.ne_top (hf : MemHolder r f) : eHolderNorm r f ≠ ∞ :=
-  hf
+  rw [memHolder_iff', not_not]
 
 lemma MemHolder.lt_top (hf : MemHolder r f) : eHolderNorm r f < ∞ :=
-  hf.ne_top.lt_top
+  hf.eHolderNorm_lt_top
+
+lemma MemHolder.ne_top (hf : MemHolder r f) : eHolderNorm r f ≠ ∞ :=
+  hf.eHolderNorm_lt_top.ne
 
 variable (X) in
 lemma eHolderNorm_const (r : ℝ≥0) (c : Y) : eHolderNorm r (Function.const X c) = 0 := by
@@ -47,10 +76,6 @@ lemma eHolderNorm_of_isEmpty (hX : IsEmpty X) :
 lemma HolderWith.eHolderNorm_le {C : ℝ≥0} (hf : HolderWith C r f) :
     eHolderNorm r f ≤ C :=
   iInf₂_le C hf
-
-lemma HolderWith.memHolder {C : ℝ≥0} (hf : HolderWith C r f) :
-    MemHolder r f :=
-  ne_of_lt <| lt_of_le_of_lt hf.eHolderNorm_le <| coe_lt_top (r := C)
 
 variable (X) in
 lemma memHolder_const {c : Y} : MemHolder r (Function.const X c) :=
@@ -92,7 +117,7 @@ lemma MemHolder.holderWith {r : ℝ≥0} {f : X → Y} (hf : MemHolder r f) :
   by_cases hx : x₁ = x₂
   . simp only [hx, edist_self, zero_le]
   rw [nnHolderNorm, eHolderNorm, coe_toNNReal]
-  swap; exact hf
+  swap; exact hf.eHolderNorm_lt_top.ne
   have h₁ : edist x₁ x₂ ^ (r : ℝ) ≠ 0 :=
     (Ne.symm <| ne_of_lt <| ENNReal.rpow_pos (edist_pos.2 hx) (edist_lt_top x₁ x₂).ne)
   have h₂ : edist x₁ x₂ ^ (r : ℝ) ≠ ∞ := by
@@ -101,6 +126,10 @@ lemma MemHolder.holderWith {r : ℝ≥0} {f : X → Y} (hf : MemHolder r f) :
   refine le_iInf₂ fun C hC => ?_
   rw [ENNReal.div_le_iff h₁ h₂]
   exact hC x₁ x₂
+
+lemma memHolder_iff_holderWith {r : ℝ≥0} {f : X → Y} :
+    MemHolder r f ↔ HolderWith (nnHolderNorm r f) r f :=
+  ⟨MemHolder.holderWith, HolderWith.memHolder⟩
 
 lemma coe_HolderNorm_le_eHolderNorm
     {r : ℝ≥0} {f : X → Y} :
@@ -174,6 +203,6 @@ lemma eHolderNorm_smul {α} [NormedDivisionRing α] [Module α Y] [BoundedSMul �
     intro h
     have := h.smul c⁻¹
     rw [inv_smul_smul₀ hc] at this
-    exact this hf
+    exact this.eHolderNorm_lt_top.ne hf
 
 end SeminormedAddCommGroup
